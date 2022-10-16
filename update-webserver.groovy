@@ -17,6 +17,7 @@ node('memyselfandi'){
                 dir('/exercise/terraform-aws-webserver-nginx-jenkins'){
                     sh """
                         echo "WELCOME WORLD"
+                        kubectl get nodes
                     """
                 }
             }
