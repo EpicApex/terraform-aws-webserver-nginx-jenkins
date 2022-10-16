@@ -12,7 +12,7 @@ node('memyselfandi'){
                 }
             }
         }
-        stage('') {
+        stage('Update webserver upon changes') {
             script {
                 dir('/exercise/terraform-aws-webserver-nginx-jenkins'){
                     sh """
