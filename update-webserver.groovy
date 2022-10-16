@@ -16,8 +16,9 @@ node('memyselfandi'){
             script {
                 dir('/exercise/terraform-aws-webserver-nginx-jenkins'){
                     sh """
-                        echo "WELCOME WORLD"
-                        kubectl get nodes
+                        rm -r /usr/share/nginx/html/index.html
+                        cp /exercise/terraform-aws-webserver-nginx-jenkins/webserver-deployment/index.html /usr/share/nginx/html/
+                        kubectl delete -n develop pod/nginx-0
                     """
                 }
             }
