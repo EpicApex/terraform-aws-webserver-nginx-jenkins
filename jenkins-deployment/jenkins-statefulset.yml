@@ -1,0 +1,96 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: jenkins
+spec:
+  selector:
+    matchLabels:
+      app: jenkins # has to match .spec.template.metadata.labels
+  serviceName: jenkins-headless-svc
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: jenkins
+      name: jenkins
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: eks.amazonaws.com/nodegroup
+                operator: In
+                values:
+                - exercise-infra-eks-spot
+      serviceAccountName: jenkins
+      terminationGracePeriodSeconds: 30
+      containers:
+      - image: jenkins/jenkins:2.340
+        name: jenkins
+        ports:
+        - containerPort: 8080
+          name: jenkins
+        - containerPort: 50000
+          name: jenkins-agent
+        resources:
+            limits:
+              memory: 2Gi
+            requests:
+              memory: 2Gi
+        env:
+        - name: JAVA_OPTS
+          value: "-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0"
+        readinessProbe:
+          httpGet:
+            path: /login
+            port: 8080
+          initialDelaySeconds: 300
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 2
+          failureThreshold: 5
+        securityContext:
+          allowPrivilegeEscalation: true
+          privileged: true
+          readOnlyRootFilesystem: false
+          runAsUser: 0
+          runAsGroup: 0
+        volumeMounts:
+        - name: jenkins-home
+          mountPath: /var/jenkins_home
+      volumes:
+        - name: jenkins-home
+          persistentVolumeClaim:
+            claimName: jenkins-storage-data-claim
+## Persistant volume
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: efs-sc
+  namespace: jenkins
+provisioner: efs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: fs-006f6b51aae727d61
+  directoryPerms: "700"
+reclaimPolicy: Retain
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  namespace: jenkins
+  name: jenkins-storage-data-claim
+  labels:
+    app: jenkins
+spec:
+  storageClassName: efs-sc
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Gi
