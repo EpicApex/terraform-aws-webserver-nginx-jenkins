@@ -27,13 +27,8 @@ spec:
       serviceAccountName: nginx
       terminationGracePeriodSeconds: 30
       containers:
-      - image: bonvoyage/nginx-webserver-project:latest
+      - image: nginx:latest
         name: nginx-ui
-        # command:
-        # - /bin/sh
-        # - -c
-        # - |-
-        #     rm /usr/share/nginx/html/index.html
         ports:
         - containerPort: 80
           name: nginx
@@ -58,10 +53,10 @@ spec:
           runAsUser: 0
           runAsGroup: 0
         volumeMounts:
-        - name: nginx-home
-          mountPath: /usr/share/nginx/html
+        - name: nginx-default-conf
+          mountPath: /etc/nginx/conf.d/
       volumes:
-        - name: nginx-home
+        - name: nginx-default-conf
           configMap:
             name: nginx-cm
 # ## Persistant volume
