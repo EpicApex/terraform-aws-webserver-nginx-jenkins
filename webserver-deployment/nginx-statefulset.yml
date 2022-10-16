@@ -1,0 +1,96 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx
+spec:
+  selector:
+    matchLabels:
+      app: nginx # has to match .spec.template.metadata.labels
+  serviceName: nginx-headless-svc
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nginx
+      name: nginx
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: eks.amazonaws.com/nodegroup
+                operator: In
+                values:
+                - exercise-infra-eks-spot
+      serviceAccountName: nginx
+      terminationGracePeriodSeconds: 30
+      containers:
+      - image: bonvoyage/nginx-webserver-project:latest
+        name: nginx-ui
+        # command:
+        # - /bin/sh
+        # - -c
+        # - |-
+        #     rm /usr/share/nginx/html/index.html
+        ports:
+        - containerPort: 80
+          name: nginx
+        resources:
+            limits:
+              memory: 16Gi
+            requests:
+              memory: 8Gi
+        readinessProbe:
+          httpGet:
+            path: /login
+            port: 80
+          initialDelaySeconds: 300
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 2
+          failureThreshold: 5
+        securityContext:
+          allowPrivilegeEscalation: true
+          privileged: true
+          readOnlyRootFilesystem: false
+          runAsUser: 0
+          runAsGroup: 0
+        volumeMounts:
+        - name: nginx-home
+          mountPath: /usr/share/nginx/html
+      volumes:
+        - name: nginx-home
+          configMap:
+            name: nginx-cm
+# ## Persistant volume
+# ---
+# kind: StorageClass
+# apiVersion: storage.k8s.io/v1
+# metadata:
+#   name: efs-sc
+#   namespace: jenkins
+# provisioner: efs.csi.aws.com
+# volumeBindingMode: WaitForFirstConsumer
+# parameters:
+#   provisioningMode: efs-ap
+#   fileSystemId: fs-006f6b51aae727d61
+#   directoryPerms: "700"
+# reclaimPolicy: Retain
+
+# ---
+# kind: PersistentVolumeClaim
+# apiVersion: v1
+# metadata:
+#   namespace: jenkins
+#   name: jenkins-storage-data-claim
+#   labels:
+#     app: jenkins
+# spec:
+#   storageClassName: efs-sc
+#   accessModes:
+#     - ReadWriteMany
+#   resources:
+#     requests:
+#       storage: 50Gi
