@@ -1,0 +1,35 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  namespace: jenkins
+  name: jenkins-ingress
+  annotations:
+    # trigger the alb-ingress-controller
+    kubernetes.io/ingress.class: "alb"
+    # set ALB parameters
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-2016-08
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=3600
+    # alb.ingress.kubernetes.io/subnets: staging-eu-vpc-public-eu-west-1a,staging-eu-vpc-public-eu-west-1c,staging-eu-vpc-public-eu-west-1c
+    # allow 404s on the health check
+    alb.ingress.kubernetes.io/healthcheck-path: "/"
+    alb.ingress.kubernetes.io/success-codes: "200"
+    nginx.ingress.kubernetes.io/custom-http-errors: "404"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "*"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "180"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "180"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "180"
+    nginx.ingress.kubernetes.io/proxy-body-size: 150m
+    ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: jenkins-headless-svc
+          servicePort: 8080
